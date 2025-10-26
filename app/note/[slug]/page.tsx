@@ -55,6 +55,7 @@ export default async function NotePage({ params }: PageProps) {
         title={title}
         frontmatter={parsed.frontmatter}
         wikilinks={parsed.wikilinks}
+        notePath={foundPath}
       />
     );
   } catch (error) {

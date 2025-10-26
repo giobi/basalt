@@ -2,15 +2,17 @@
 
 import Link from 'next/link';
 import { convertWikilinks } from '@/lib/markdown';
+import Backlinks from './Backlinks';
 
 interface NoteViewerProps {
   content: string;
   title: string;
   frontmatter?: Record<string, any>;
   wikilinks?: string[];
+  notePath?: string;
 }
 
-export default function NoteViewer({ content, title, frontmatter, wikilinks }: NoteViewerProps) {
+export default function NoteViewer({ content, title, frontmatter, wikilinks, notePath }: NoteViewerProps) {
   // Convert wikilinks to HTML
   const htmlContent = convertWikilinks(content);
 
@@ -65,6 +67,9 @@ export default function NoteViewer({ content, title, frontmatter, wikilinks }: N
           </ul>
         </div>
       )}
+
+      {/* Backlinks */}
+      {notePath && <Backlinks notePath={notePath} />}
     </div>
   );
 }
