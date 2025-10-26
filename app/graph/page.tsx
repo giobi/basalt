@@ -1,14 +1,31 @@
-import GraphView from '@/components/GraphView';
+'use client';
 
-export const metadata = {
-  title: 'Graph View - Basalt',
-  description: 'Visualize connections between notes in the vault',
-};
+import GraphView from '@/components/GraphView';
+import { useEffect, useState } from 'react';
 
 export default function GraphPage() {
+  const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
+
+  useEffect(() => {
+    setDimensions({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
+
+    const handleResize = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <div className="w-full h-screen">
-      <GraphView width={typeof window !== 'undefined' ? window.innerWidth : 1200} height={typeof window !== 'undefined' ? window.innerHeight : 800} />
+      <GraphView width={dimensions.width} height={dimensions.height} />
     </div>
   );
 }
