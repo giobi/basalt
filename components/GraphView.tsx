@@ -25,7 +25,7 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
   const [error, setError] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const router = useRouter();
-  const graphRef = useRef<any>();
+  const graphRef = useRef<any>(null);
 
   useEffect(() => {
     async function fetchGraphData() {
