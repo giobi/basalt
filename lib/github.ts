@@ -18,10 +18,17 @@ export class GitHubClient {
   async getVaultTree(path: string = ''): Promise<VaultTree> {
     const url = `${this.baseUrl}/contents/${path}?ref=${BRANCH}`;
 
+    const headers: Record<string, string> = {
+      'Accept': 'application/vnd.github.v3+json',
+    };
+
+    // Add auth token if available (increases rate limit)
+    if (process.env.GITHUB_TOKEN) {
+      headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    }
+
     const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-      },
+      headers,
       next: { revalidate: 3600 }, // Cache for 1 hour
     });
 
@@ -57,10 +64,16 @@ export class GitHubClient {
   async getFileContent(path: string): Promise<string> {
     const url = `${this.baseUrl}/contents/${path}?ref=${BRANCH}`;
 
+    const headers: Record<string, string> = {
+      'Accept': 'application/vnd.github.v3.raw',
+    };
+
+    if (process.env.GITHUB_TOKEN) {
+      headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    }
+
     const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/vnd.github.v3.raw',
-      },
+      headers,
       next: { revalidate: 3600 },
     });
 
