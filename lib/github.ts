@@ -7,9 +7,11 @@ const BRANCH = 'main';
 
 export class GitHubClient {
   private baseUrl: string;
+  private token?: string;
 
-  constructor() {
+  constructor(token?: string) {
     this.baseUrl = `${GITHUB_API}/repos/${REPO_OWNER}/${REPO_NAME}`;
+    this.token = token;
   }
 
   /**
@@ -22,9 +24,10 @@ export class GitHubClient {
       'Accept': 'application/vnd.github.v3+json',
     };
 
-    // Add auth token if available (increases rate limit)
-    if (process.env.GITHUB_TOKEN) {
-      headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    // Use OAuth token or fallback to env token
+    const authToken = this.token || process.env.GITHUB_TOKEN;
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const response = await fetch(url, {
@@ -68,8 +71,10 @@ export class GitHubClient {
       'Accept': 'application/vnd.github.v3.raw',
     };
 
-    if (process.env.GITHUB_TOKEN) {
-      headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    // Use OAuth token or fallback to env token
+    const authToken = this.token || process.env.GITHUB_TOKEN;
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     const response = await fetch(url, {
@@ -118,4 +123,5 @@ export class GitHubClient {
   }
 }
 
-export const githubClient = new GitHubClient();
+// Create client instance with OAuth token from session
+// Usage: const client = new GitHubClient(session?.accessToken)

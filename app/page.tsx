@@ -1,11 +1,20 @@
 import FileBrowser from '@/components/FileBrowser';
-import { githubClient } from '@/lib/github';
+import { GitHubClient } from '@/lib/github';
+import { getSession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 // Force dynamic rendering to avoid build-time API calls
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
+  const session = await getSession();
+
+  if (!session?.accessToken) {
+    redirect('/auth/signin');
+  }
+
   // Fetch all markdown files from the vault
+  const githubClient = new GitHubClient(session.accessToken);
   const allFiles = await githubClient.getAllMarkdownFiles();
 
   const files = allFiles.map(path => ({

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getBacklinks } from '@/lib/graph';
+import { getSession } from '@/lib/auth';
 import type { NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -7,6 +8,14 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session?.accessToken) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const notePath = searchParams.get('path');
 
@@ -18,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`Fetching backlinks for: ${notePath}`);
-    const backlinks = await getBacklinks(notePath);
+    const backlinks = await getBacklinks(notePath, session.accessToken);
 
     return NextResponse.json(backlinks, {
       headers: {

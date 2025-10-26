@@ -1,13 +1,22 @@
 import { NextResponse } from 'next/server';
 import { buildGraphData } from '@/lib/graph';
+import { getSession } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!session?.accessToken) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     console.log('Building graph data...');
-    const graphData = await buildGraphData();
+    const graphData = await buildGraphData(session.accessToken);
 
     return NextResponse.json(graphData, {
       headers: {

@@ -1,7 +1,8 @@
-import { githubClient } from '@/lib/github';
+import { GitHubClient } from '@/lib/github';
 import { parseMarkdown } from '@/lib/markdown';
 import NoteViewer from '@/components/NoteViewer';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { getSession } from '@/lib/auth';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,13 @@ interface PageProps {
 }
 
 export default async function NotePage({ params }: PageProps) {
+  const session = await getSession();
+
+  if (!session?.accessToken) {
+    redirect('/auth/signin');
+  }
+
+  const githubClient = new GitHubClient(session.accessToken);
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
 

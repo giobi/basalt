@@ -1,5 +1,5 @@
 import type { GraphData, GraphNode, GraphLink } from '@/types/vault';
-import { githubClient } from './github';
+import { GitHubClient } from './github';
 
 interface WikiLink {
   target: string;
@@ -63,7 +63,9 @@ function findMatchingFile(target: string, allPaths: string[]): string | null {
 /**
  * Build graph data from vault files
  */
-export async function buildGraphData(): Promise<GraphData> {
+export async function buildGraphData(accessToken: string): Promise<GraphData> {
+  const githubClient = new GitHubClient(accessToken);
+
   // Get all markdown files
   const allFiles = await githubClient.getAllMarkdownFiles();
 
@@ -147,11 +149,12 @@ export async function buildGraphData(): Promise<GraphData> {
 /**
  * Get backlinks for a specific note
  */
-export async function getBacklinks(notePath: string): Promise<Array<{
+export async function getBacklinks(notePath: string, accessToken: string): Promise<Array<{
   path: string;
   name: string;
   context: string;
 }>> {
+  const githubClient = new GitHubClient(accessToken);
   const allFiles = await githubClient.getAllMarkdownFiles();
   const backlinks: Array<{ path: string; name: string; context: string }> = [];
 
