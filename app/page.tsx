@@ -36,13 +36,20 @@ export default async function Home() {
 
           <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 mb-8">
             <h2 className="text-2xl font-semibold mb-4">Features</h2>
-            <ul className="space-y-2 list-disc list-inside">
+            <ul className="space-y-2 list-disc list-inside mb-4">
               <li>📖 Read Obsidian vault directly from GitHub</li>
               <li>🔗 Wikilinks support with navigation</li>
               <li>📄 {files.length} markdown files indexed</li>
               <li>🎨 Clean markdown rendering</li>
               <li>🔍 File search and directory browser</li>
+              <li>🕸️ Interactive graph view of note connections</li>
             </ul>
+            <a
+              href="/graph"
+              className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+            >
+              🕸️ Explore Graph View
+            </a>
           </div>
 
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">

@@ -19,3 +19,21 @@ export interface Note {
   wikilinks: string[];
   backlinks?: string[];
 }
+
+export interface GraphNode {
+  id: string;
+  name: string;
+  path: string;
+  group: number;
+  val: number;
+}
+
+export interface GraphLink {
+  source: string;
+  target: string;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
+}
