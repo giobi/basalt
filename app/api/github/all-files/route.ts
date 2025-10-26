@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GitHubClient } from '@/lib/github';
 import { getSession } from '@/lib/auth';
+import { getRepoSelection } from '@/lib/repo-session';
 
 export async function GET() {
   try {
@@ -12,7 +13,20 @@ export async function GET() {
       );
     }
 
-    const githubClient = new GitHubClient(session.accessToken);
+    const repoSelection = await getRepoSelection();
+    if (!repoSelection) {
+      return NextResponse.json(
+        { error: 'No repository selected' },
+        { status: 400 }
+      );
+    }
+
+    const githubClient = new GitHubClient(
+      session.accessToken,
+      repoSelection.owner,
+      repoSelection.repo,
+      repoSelection.branch
+    );
     const files = await githubClient.getAllMarkdownFiles();
     return NextResponse.json({ files });
   } catch (error) {

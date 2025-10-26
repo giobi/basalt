@@ -63,8 +63,8 @@ function findMatchingFile(target: string, allPaths: string[]): string | null {
 /**
  * Build graph data from vault files
  */
-export async function buildGraphData(accessToken: string): Promise<GraphData> {
-  const githubClient = new GitHubClient(accessToken);
+export async function buildGraphData(accessToken: string, owner: string, repo: string, branch: string = 'main'): Promise<GraphData> {
+  const githubClient = new GitHubClient(accessToken, owner, repo, branch);
 
   // Get all markdown files
   const allFiles = await githubClient.getAllMarkdownFiles();
@@ -149,12 +149,12 @@ export async function buildGraphData(accessToken: string): Promise<GraphData> {
 /**
  * Get backlinks for a specific note
  */
-export async function getBacklinks(notePath: string, accessToken: string): Promise<Array<{
+export async function getBacklinks(notePath: string, accessToken: string, owner: string, repo: string, branch: string = 'main'): Promise<Array<{
   path: string;
   name: string;
   context: string;
 }>> {
-  const githubClient = new GitHubClient(accessToken);
+  const githubClient = new GitHubClient(accessToken, owner, repo, branch);
   const allFiles = await githubClient.getAllMarkdownFiles();
   const backlinks: Array<{ path: string; name: string; context: string }> = [];
 

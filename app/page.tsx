@@ -1,6 +1,7 @@
 import FileBrowser from '@/components/FileBrowser';
 import { GitHubClient } from '@/lib/github';
 import { getSession } from '@/lib/auth';
+import { getRepoSelection } from '@/lib/repo-session';
 import { redirect } from 'next/navigation';
 
 // Force dynamic rendering to avoid build-time API calls
@@ -13,8 +14,20 @@ export default async function Home() {
     redirect('/auth/signin');
   }
 
+  // Check if repo is selected
+  const repoSelection = await getRepoSelection();
+
+  if (!repoSelection) {
+    redirect('/select-repo');
+  }
+
   // Fetch all markdown files from the vault
-  const githubClient = new GitHubClient(session.accessToken);
+  const githubClient = new GitHubClient(
+    session.accessToken,
+    repoSelection.owner,
+    repoSelection.repo,
+    repoSelection.branch
+  );
   const allFiles = await githubClient.getAllMarkdownFiles();
 
   const files = allFiles.map(path => ({
@@ -34,12 +47,19 @@ export default async function Home() {
           <p className="text-gray-600 dark:text-gray-400 mb-8">
             Web-based Obsidian vault reader for{' '}
             <a
-              href="https://github.com/giobi/brain"
+              href={`https://github.com/${repoSelection.owner}/${repoSelection.repo}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 hover:underline"
             >
-              giobi/brain
+              {repoSelection.owner}/{repoSelection.repo}
+            </a>
+            {' '}
+            <a
+              href="/select-repo"
+              className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
+            >
+              (change)
             </a>
           </p>
 

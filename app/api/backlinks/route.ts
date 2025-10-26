@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getBacklinks } from '@/lib/graph';
 import { getSession } from '@/lib/auth';
+import { getRepoSelection } from '@/lib/repo-session';
 import type { NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -16,6 +17,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const repoSelection = await getRepoSelection();
+    if (!repoSelection) {
+      return NextResponse.json(
+        { error: 'No repository selected' },
+        { status: 400 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const notePath = searchParams.get('path');
 
@@ -27,7 +36,13 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`Fetching backlinks for: ${notePath}`);
-    const backlinks = await getBacklinks(notePath, session.accessToken);
+    const backlinks = await getBacklinks(
+      notePath,
+      session.accessToken,
+      repoSelection.owner,
+      repoSelection.repo,
+      repoSelection.branch
+    );
 
     return NextResponse.json(backlinks, {
       headers: {

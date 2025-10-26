@@ -1,24 +1,48 @@
 import type { VaultFile, VaultTree, Note } from '@/types/vault';
 
 const GITHUB_API = 'https://api.github.com';
-const REPO_OWNER = 'giobi';
-const REPO_NAME = 'brain';
-const BRANCH = 'main';
 
 export class GitHubClient {
   private baseUrl: string;
   private token?: string;
+  private owner: string;
+  private repo: string;
+  private branch: string;
 
-  constructor(token?: string) {
-    this.baseUrl = `${GITHUB_API}/repos/${REPO_OWNER}/${REPO_NAME}`;
+  constructor(token: string, owner: string, repo: string, branch: string = 'main') {
     this.token = token;
+    this.owner = owner;
+    this.repo = repo;
+    this.branch = branch;
+    this.baseUrl = `${GITHUB_API}/repos/${owner}/${repo}`;
+  }
+
+  /**
+   * Get repository info
+   */
+  async getRepoInfo() {
+    const headers: Record<string, string> = {
+      'Accept': 'application/vnd.github.v3+json',
+    };
+
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(this.baseUrl, { headers });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch repo: ${response.statusText}`);
+    }
+
+    return response.json();
   }
 
   /**
    * Fetch the vault tree from GitHub
    */
   async getVaultTree(path: string = ''): Promise<VaultTree> {
-    const url = `${this.baseUrl}/contents/${path}?ref=${BRANCH}`;
+    const url = `${this.baseUrl}/contents/${path}?ref=${this.branch}`;
 
     const headers: Record<string, string> = {
       'Accept': 'application/vnd.github.v3+json',
@@ -65,7 +89,7 @@ export class GitHubClient {
    * Get file content from GitHub
    */
   async getFileContent(path: string): Promise<string> {
-    const url = `${this.baseUrl}/contents/${path}?ref=${BRANCH}`;
+    const url = `${this.baseUrl}/contents/${path}?ref=${this.branch}`;
 
     const headers: Record<string, string> = {
       'Accept': 'application/vnd.github.v3.raw',

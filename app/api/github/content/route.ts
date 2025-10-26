@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GitHubClient } from '@/lib/github';
 import { parseMarkdown } from '@/lib/markdown';
 import { getSession } from '@/lib/auth';
+import { getRepoSelection } from '@/lib/repo-session';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -23,7 +24,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const githubClient = new GitHubClient(session.accessToken);
+    const repoSelection = await getRepoSelection();
+    if (!repoSelection) {
+      return NextResponse.json(
+        { error: 'No repository selected' },
+        { status: 400 }
+      );
+    }
+
+    const githubClient = new GitHubClient(
+      session.accessToken,
+      repoSelection.owner,
+      repoSelection.repo,
+      repoSelection.branch
+    );
     const content = await githubClient.getFileContent(path);
     const parsed = parseMarkdown(content);
 

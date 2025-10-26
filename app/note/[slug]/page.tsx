@@ -3,6 +3,7 @@ import { parseMarkdown } from '@/lib/markdown';
 import NoteViewer from '@/components/NoteViewer';
 import { notFound, redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
+import { getRepoSelection } from '@/lib/repo-session';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,18 @@ export default async function NotePage({ params }: PageProps) {
     redirect('/auth/signin');
   }
 
-  const githubClient = new GitHubClient(session.accessToken);
+  const repoSelection = await getRepoSelection();
+
+  if (!repoSelection) {
+    redirect('/select-repo');
+  }
+
+  const githubClient = new GitHubClient(
+    session.accessToken,
+    repoSelection.owner,
+    repoSelection.repo,
+    repoSelection.branch
+  );
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
 

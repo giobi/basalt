@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { buildGraphData } from '@/lib/graph';
 import { getSession } from '@/lib/auth';
+import { getRepoSelection } from '@/lib/repo-session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,8 +16,21 @@ export async function GET() {
       );
     }
 
+    const repoSelection = await getRepoSelection();
+    if (!repoSelection) {
+      return NextResponse.json(
+        { error: 'No repository selected' },
+        { status: 400 }
+      );
+    }
+
     console.log('Building graph data...');
-    const graphData = await buildGraphData(session.accessToken);
+    const graphData = await buildGraphData(
+      session.accessToken,
+      repoSelection.owner,
+      repoSelection.repo,
+      repoSelection.branch
+    );
 
     return NextResponse.json(graphData, {
       headers: {
