@@ -3,21 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #1e1e1e;
+  --foreground: #d4d4d4;
+  --muted: #a0a0a0;
+  --border: #3a3a3a;
+  --card: #2a2a2a;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
 }
 
 @layer utilities {
@@ -28,9 +24,28 @@ body {
 
 /* Wikilink styles */
 .wikilink {
-  @apply text-blue-600 dark:text-blue-400 hover:underline;
+  @apply text-[#7f7f7f] hover:text-[#a0a0a0] underline;
 }
 
 .wikilink-broken {
-  @apply text-gray-400 dark:text-gray-600;
+  @apply text-[#666666];
+}
+
+/* Custom scrollbar for Obsidian theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
 }

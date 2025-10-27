@@ -61,9 +61,9 @@ export default function FileBrowser({ files }: FileBrowserProps) {
   const directories = buildTree();
 
   return (
-    <div className="w-64 h-screen bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+    <div className="w-64 h-screen bg-[#1e1e1e] border-r border-[#3a3a3a] overflow-y-auto">
       <div className="p-4">
-        <h2 className="text-xl font-bold mb-4">Brain Vault</h2>
+        <h2 className="text-xl font-bold mb-4 text-[#d4d4d4]">Brain Vault</h2>
 
         {/* Search */}
         <input
@@ -71,7 +71,7 @@ export default function FileBrowser({ files }: FileBrowserProps) {
           placeholder="Search files..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm mb-4"
+          className="w-full px-3 py-2 border border-[#3a3a3a] rounded bg-[#2a2a2a] text-[#d4d4d4] text-sm mb-4 placeholder:text-[#7f7f7f] focus:outline-none focus:border-[#4a4a4a]"
         />
 
         {/* File tree */}
@@ -82,10 +82,10 @@ export default function FileBrowser({ files }: FileBrowserProps) {
               <Link
                 key={file.path}
                 href={`/note/${encodeURIComponent(file.path)}`}
-                className="block px-2 py-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700 rounded truncate"
+                className="block px-2 py-1 text-sm text-[#a0a0a0] hover:bg-[#2a2a2a] rounded truncate"
                 title={file.path}
               >
-                📄 {file.name}
+                {file.name}
               </Link>
             ))
           ) : (
@@ -102,11 +102,11 @@ export default function FileBrowser({ files }: FileBrowserProps) {
                     {/* Directory */}
                     <button
                       onClick={() => toggleDir(dir)}
-                      className="w-full text-left px-2 py-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex items-center gap-1"
+                      className="w-full text-left px-2 py-1 text-sm text-[#a0a0a0] hover:bg-[#2a2a2a] rounded flex items-center gap-1"
                       style={{ paddingLeft: `${paddingLeft}px` }}
                     >
                       <span className="text-xs">{isExpanded ? '▼' : '▶'}</span>
-                      <span>📁 {dir.split('/').pop()}</span>
+                      <span>{dir.split('/').pop()}</span>
                     </button>
 
                     {/* Files in directory */}
@@ -114,11 +114,11 @@ export default function FileBrowser({ files }: FileBrowserProps) {
                       <Link
                         key={file.path}
                         href={`/note/${encodeURIComponent(file.path)}`}
-                        className="block px-2 py-1 text-sm hover:bg-gray-200 dark:hover:bg-gray-700 rounded truncate"
+                        className="block px-2 py-1 text-sm text-[#a0a0a0] hover:bg-[#2a2a2a] rounded truncate"
                         style={{ paddingLeft: `${paddingLeft + 24}px` }}
                         title={file.path}
                       >
-                        📄 {file.name}
+                        {file.name}
                       </Link>
                     ))}
                   </div>
@@ -129,7 +129,7 @@ export default function FileBrowser({ files }: FileBrowserProps) {
         </div>
 
         {/* Stats */}
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400">
+        <div className="mt-4 pt-4 border-t border-[#3a3a3a] text-xs text-[#7f7f7f]">
           <div>Total files: {files.length}</div>
           <div>Directories: {directories.length}</div>
           {search && <div>Filtered: {filteredFiles.length}</div>}
