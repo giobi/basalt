@@ -13,6 +13,14 @@ interface GraphViewProps {
 interface SearchResult {
   path: string;
   name: string;
+  exists: boolean; // true for files, false for wikilinks
+}
+
+interface VaultIndex {
+  files: string[];
+  wikilinks: { [file: string]: string[] };
+  allWikilinks: string[];
+  timestamp: number;
 }
 
 const GROUP_COLORS: Record<number, string> = {
@@ -39,11 +47,53 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
+  // Vault index state
+  const [vaultIndex, setVaultIndex] = useState<VaultIndex | null>(null);
+  const [indexLoading, setIndexLoading] = useState(false);
+
   const router = useRouter();
   const graphRef = useRef<any>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Search for notes
+  // Load vault index on mount
+  useEffect(() => {
+    const loadIndex = async () => {
+      try {
+        // Try to load from localStorage first
+        const cached = localStorage.getItem('vaultIndex');
+        if (cached) {
+          const parsedIndex = JSON.parse(cached) as VaultIndex;
+          // Use cache if less than 1 hour old
+          if (Date.now() - parsedIndex.timestamp < 3600000) {
+            console.log('Using cached vault index');
+            setVaultIndex(parsedIndex);
+            return;
+          }
+        }
+
+        // Load from API
+        console.log('Loading vault index from API...');
+        setIndexLoading(true);
+        const response = await fetch('/api/graph/index');
+        if (!response.ok) throw new Error('Failed to load index');
+
+        const index = await response.json() as VaultIndex;
+        setVaultIndex(index);
+
+        // Cache in localStorage
+        localStorage.setItem('vaultIndex', JSON.stringify(index));
+        console.log(`Indexed ${index.files.length} files, ${index.allWikilinks.length} wikilinks`);
+      } catch (error) {
+        console.error('Failed to load vault index:', error);
+      } finally {
+        setIndexLoading(false);
+      }
+    };
+
+    loadIndex();
+  }, []);
+
+  // Search for notes using local index
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -55,14 +105,53 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
       return;
     }
 
-    searchTimeoutRef.current = setTimeout(async () => {
+    // Wait for index to load
+    if (!vaultIndex) {
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
       try {
         setSearching(true);
-        const response = await fetch(`/api/graph/search?q=${encodeURIComponent(searchQuery)}`);
-        if (!response.ok) throw new Error('Search failed');
+        const query = searchQuery.toLowerCase();
+        const results: SearchResult[] = [];
 
-        const data = await response.json();
-        setSearchResults(data.results || []);
+        // Search in files
+        vaultIndex.files.forEach(path => {
+          const pathLower = path.toLowerCase();
+          const name = path.split('/').pop()?.replace(/\.md$/, '') || '';
+          const nameLower = name.toLowerCase();
+
+          if (pathLower.includes(query) || nameLower.includes(query)) {
+            results.push({
+              path,
+              name,
+              exists: true,
+            });
+          }
+        });
+
+        // Search in wikilinks (phantom notes)
+        vaultIndex.allWikilinks.forEach(wikilink => {
+          const wikilinkLower = wikilink.toLowerCase();
+          if (wikilinkLower.includes(query)) {
+            // Check if this wikilink is NOT an existing file
+            const isExisting = vaultIndex.files.some(f =>
+              f.toLowerCase().replace(/\.md$/, '').endsWith(wikilinkLower)
+            );
+
+            if (!isExisting) {
+              results.push({
+                path: `${wikilink}.md`,
+                name: wikilink,
+                exists: false,
+              });
+            }
+          }
+        });
+
+        // Limit to 50 results
+        setSearchResults(results.slice(0, 50));
         setShowResults(true);
       } catch (err) {
         console.error('Search error:', err);
@@ -77,7 +166,7 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchQuery]);
+  }, [searchQuery, vaultIndex]);
 
   // Load graph for selected note
   const loadNodeGraph = async (path: string, selectedDepth: number) => {
@@ -229,8 +318,9 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchResults.length > 0 && setShowResults(true)}
-              placeholder="Search notes..."
-              className="w-full px-4 py-3 bg-transparent text-[#d4d4d4] placeholder-[#7f7f7f] outline-none"
+              placeholder={indexLoading ? "Indexing vault..." : vaultIndex ? "Search notes and wikilinks..." : "Loading..."}
+              disabled={!vaultIndex && indexLoading}
+              className="w-full px-4 py-3 bg-transparent text-[#d4d4d4] placeholder-[#7f7f7f] outline-none disabled:opacity-50"
             />
             {searching && (
               <div className="absolute right-3 top-3">
@@ -248,7 +338,12 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
                   onClick={() => handleSelectNote(result)}
                   className="w-full px-4 py-2 text-left hover:bg-[#3a3a3a] text-[#a0a0a0] hover:text-[#d4d4d4] transition-colors"
                 >
-                  <div className="font-medium text-sm">{result.name}</div>
+                  <div className={`font-medium text-sm flex items-center gap-2 ${!result.exists ? 'italic' : ''}`}>
+                    {result.name}
+                    {!result.exists && (
+                      <span className="text-xs text-[#5a5a5a] border border-[#5a5a5a] rounded px-1">phantom</span>
+                    )}
+                  </div>
                   <div className="text-xs text-[#7f7f7f] truncate">{result.path}</div>
                 </button>
               ))}
