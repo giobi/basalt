@@ -124,50 +124,60 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // Extract and process wikilinks
-      if (currentDepth < depth) {
-        const wikilinks = extractWikilinks(content);
+      // Extract and process wikilinks (always extract to show phantom nodes)
+      const wikilinks = extractWikilinks(content);
 
-        for (const link of wikilinks) {
-          const targetPath = findMatchingFile(link.target, allPaths);
+      for (const link of wikilinks) {
+        const targetPath = findMatchingFile(link.target, allPaths);
 
-          if (targetPath) {
-            // Existing file
-            const targetId = normalizePathToId(targetPath);
+        if (targetPath) {
+          // Existing file
+          const targetId = normalizePathToId(targetPath);
 
-            // Add link
-            links.push({
-              source: nodeId,
-              target: targetId,
-            });
-
-            // Queue target for next iteration
-            if (!visited.has(targetPath)) {
-              queue.push({ path: targetPath, depth: currentDepth + 1 });
-            }
-          } else {
-            // Phantom node (non-existent file)
-            const phantomId = link.target.toLowerCase();
-            const phantomPath = `${link.target}.md`; // Assume .md extension
-
-            // Add phantom node if not already present
-            if (!nodes.has(phantomId)) {
-              nodes.set(phantomId, {
-                id: phantomId,
-                name: link.target,
-                path: phantomPath,
-                group: 6, // Phantom group
-                val: 3, // Smaller size
-                exists: false, // Phantom
-              });
-            }
-
-            // Add link to phantom
-            links.push({
-              source: nodeId,
-              target: phantomId,
+          // Add target node if not already present
+          if (!nodes.has(targetId)) {
+            nodes.set(targetId, {
+              id: targetId,
+              name: targetPath.split('/').pop()?.replace(/\.md$/, '') || targetId,
+              path: targetPath,
+              group: getNodeGroup(targetPath),
+              val: 3,
+              exists: true,
             });
           }
+
+          // Add link
+          links.push({
+            source: nodeId,
+            target: targetId,
+          });
+
+          // Queue target for next iteration only if within depth limit
+          if (currentDepth < depth && !visited.has(targetPath)) {
+            queue.push({ path: targetPath, depth: currentDepth + 1 });
+          }
+        } else {
+          // Phantom node (non-existent file)
+          const phantomId = link.target.toLowerCase();
+          const phantomPath = `${link.target}.md`; // Assume .md extension
+
+          // Add phantom node if not already present
+          if (!nodes.has(phantomId)) {
+            nodes.set(phantomId, {
+              id: phantomId,
+              name: link.target,
+              path: phantomPath,
+              group: 6, // Phantom group
+              val: 3, // Smaller size
+              exists: false, // Phantom
+            });
+          }
+
+          // Add link to phantom
+          links.push({
+            source: nodeId,
+            target: phantomId,
+          });
         }
       }
     }
