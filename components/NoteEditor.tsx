@@ -30,48 +30,78 @@ export default function NoteEditor({
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('saved');
   const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split'>('split');
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const maxTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const firstChangeTimeRef = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-save effect
+  // Save function
+  const saveNote = async (contentToSave: string, currentSha: string) => {
+    try {
+      setSyncStatus('saving');
+      const response = await fetch('/api/note/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path: notePath,
+          content: contentToSave,
+          sha: currentSha,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save');
+      }
+
+      const data = await response.json();
+      setSha(data.sha); // Update SHA for next save
+      setSyncStatus('saved');
+      firstChangeTimeRef.current = null; // Reset first change time
+    } catch (error) {
+      console.error('Save error:', error);
+      setSyncStatus('error');
+    }
+  };
+
+  // Auto-save effect with 15s debounce and 5min max wait
   useEffect(() => {
-    // Clear any pending save
+    // Clear any pending debounce save
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Skip if content hasn't changed
+    // Skip if content hasn't changed from initial
     if (content === initialContent) {
       return;
     }
 
-    // Set saving status immediately
-    setSyncStatus('saving');
+    // Track first change time for max timeout
+    if (firstChangeTimeRef.current === null) {
+      firstChangeTimeRef.current = Date.now();
 
-    // Debounce save for 2 seconds
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        const response = await fetch('/api/note/update', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            path: notePath,
-            content,
-            sha,
-          }),
-        });
+      // Set max timeout of 5 minutes (300000ms)
+      maxTimeoutRef.current = setTimeout(() => {
+        saveNote(content, sha);
+      }, 300000);
+    }
 
-        if (!response.ok) {
-          throw new Error('Failed to save');
-        }
-
-        const data = await response.json();
-        setSha(data.sha); // Update SHA for next save
-        setSyncStatus('saved');
-      } catch (error) {
-        console.error('Save error:', error);
-        setSyncStatus('error');
+    // Check if we've exceeded 5 minutes since first change
+    const timeSinceFirstChange = Date.now() - firstChangeTimeRef.current;
+    if (timeSinceFirstChange >= 300000) {
+      // Force save immediately if we've hit the 5 minute mark
+      saveNote(content, sha);
+      if (maxTimeoutRef.current) {
+        clearTimeout(maxTimeoutRef.current);
       }
-    }, 2000);
+      return;
+    }
+
+    // Set debounce save for 15 seconds
+    saveTimeoutRef.current = setTimeout(() => {
+      saveNote(content, sha);
+      if (maxTimeoutRef.current) {
+        clearTimeout(maxTimeoutRef.current);
+      }
+    }, 15000);
 
     return () => {
       if (saveTimeoutRef.current) {
