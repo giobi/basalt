@@ -114,6 +114,41 @@ export class GitHubClient {
   }
 
   /**
+   * Get file content with metadata (including SHA)
+   */
+  async getFileWithMetadata(path: string): Promise<{ content: string; sha: string; size: number }> {
+    const url = `${this.baseUrl}/contents/${path}?ref=${this.branch}`;
+
+    const headers: Record<string, string> = {
+      'Accept': 'application/vnd.github.v3+json',
+    };
+
+    // Use OAuth token or fallback to env token
+    const authToken = this.token || process.env.GITHUB_TOKEN;
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(url, {
+      headers,
+      next: { revalidate: 0 }, // Don't cache for editor
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = Buffer.from(data.content, 'base64').toString('utf-8');
+
+    return {
+      content,
+      sha: data.sha,
+      size: data.size,
+    };
+  }
+
+  /**
    * List all markdown files recursively
    */
   async getAllMarkdownFiles(basePath: string = ''): Promise<string[]> {

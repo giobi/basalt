@@ -1,6 +1,6 @@
 import { GitHubClient } from '@/lib/github';
 import { parseMarkdown } from '@/lib/markdown';
-import NoteViewer from '@/components/NoteViewer';
+import NoteEditor from '@/components/NoteEditor';
 import { notFound, redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { getRepoSelection } from '@/lib/repo-session';
@@ -48,12 +48,12 @@ export default async function NotePage({ params }: PageProps) {
       `database/${filePath}`,
     ];
 
-    let content: string | null = null;
+    let fileData: { content: string; sha: string; size: number } | null = null;
     let foundPath: string | null = null;
 
     for (const path of searchPaths) {
       try {
-        content = await githubClient.getFileContent(path);
+        fileData = await githubClient.getFileWithMetadata(path);
         foundPath = path;
         break;
       } catch {
@@ -62,20 +62,21 @@ export default async function NotePage({ params }: PageProps) {
       }
     }
 
-    if (!content || !foundPath) {
+    if (!fileData || !foundPath) {
       return notFound();
     }
 
-    const parsed = parseMarkdown(content);
+    const parsed = parseMarkdown(fileData.content);
     const title = parsed.frontmatter.title || decodedSlug.replace(/\.md$/, '');
 
     return (
-      <NoteViewer
-        content={parsed.content}
+      <NoteEditor
+        initialContent={fileData.content}
         title={title}
         frontmatter={parsed.frontmatter}
         wikilinks={parsed.wikilinks}
         notePath={foundPath}
+        sha={fileData.sha}
       />
     );
   } catch (error) {
