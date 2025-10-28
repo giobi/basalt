@@ -121,27 +121,27 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
     }
   };
 
-  // Node click handlers
+  // Node click handlers - using refs for reliable double-click detection
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [clickCount, setClickCount] = useState(0);
+  const lastClickTimeRef = useRef<number>(0);
+  const lastClickedNodeRef = useRef<string | null>(null);
 
   const handleNodeClick = async (node: any) => {
-    if (clickTimeoutRef.current) {
-      clearTimeout(clickTimeoutRef.current);
-      clickTimeoutRef.current = null;
-    }
+    const now = Date.now();
+    const timeDiff = now - lastClickTimeRef.current;
+    const isSameNode = lastClickedNodeRef.current === node.id;
 
-    const currentCount = clickCount + 1;
-    setClickCount(currentCount);
+    // Double click: within 300ms and same node
+    if (timeDiff < 300 && isSameNode) {
+      // Clear any pending timeout
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+        clickTimeoutRef.current = null;
+      }
 
-    if (currentCount === 1) {
-      clickTimeoutRef.current = setTimeout(() => {
-        setSelectedNode(node.id);
-        console.log('Node selected:', node.id, node.name);
-        setClickCount(0);
-      }, 300);
-    } else if (currentCount === 2) {
-      setClickCount(0);
+      // Reset refs
+      lastClickTimeRef.current = 0;
+      lastClickedNodeRef.current = null;
 
       // Check if phantom node (non-existent)
       if (!node.exists) {
@@ -179,6 +179,19 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
         console.log('Opening note:', slug);
         router.push(`/note/${slug}`);
       }
+    } else {
+      // Single click - update selection after delay
+      lastClickTimeRef.current = now;
+      lastClickedNodeRef.current = node.id;
+
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+
+      clickTimeoutRef.current = setTimeout(() => {
+        setSelectedNode(node.id);
+        console.log('Node selected:', node.id, node.name);
+      }, 300);
     }
   };
 
