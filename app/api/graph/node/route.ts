@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // Add node
+      // Add node (existing file)
       const nodeId = normalizePathToId(path);
       if (!nodes.has(nodeId)) {
         nodes.set(nodeId, {
@@ -119,7 +119,8 @@ export async function GET(request: NextRequest) {
           name: path.split('/').pop()?.replace(/\.md$/, '') || nodeId,
           path,
           group: getNodeGroup(path),
-          val: 4, // Node size
+          val: 4,
+          exists: true, // Real file
         });
       }
 
@@ -129,19 +130,43 @@ export async function GET(request: NextRequest) {
 
         for (const link of wikilinks) {
           const targetPath = findMatchingFile(link.target, allPaths);
-          if (!targetPath) continue;
 
-          const targetId = normalizePathToId(targetPath);
+          if (targetPath) {
+            // Existing file
+            const targetId = normalizePathToId(targetPath);
 
-          // Add link
-          links.push({
-            source: nodeId,
-            target: targetId,
-          });
+            // Add link
+            links.push({
+              source: nodeId,
+              target: targetId,
+            });
 
-          // Queue target for next iteration
-          if (!visited.has(targetPath)) {
-            queue.push({ path: targetPath, depth: currentDepth + 1 });
+            // Queue target for next iteration
+            if (!visited.has(targetPath)) {
+              queue.push({ path: targetPath, depth: currentDepth + 1 });
+            }
+          } else {
+            // Phantom node (non-existent file)
+            const phantomId = link.target.toLowerCase();
+            const phantomPath = `${link.target}.md`; // Assume .md extension
+
+            // Add phantom node if not already present
+            if (!nodes.has(phantomId)) {
+              nodes.set(phantomId, {
+                id: phantomId,
+                name: link.target,
+                path: phantomPath,
+                group: 6, // Phantom group
+                val: 3, // Smaller size
+                exists: false, // Phantom
+              });
+            }
+
+            // Add link to phantom
+            links.push({
+              source: nodeId,
+              target: phantomId,
+            });
           }
         }
       }

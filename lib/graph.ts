@@ -92,6 +92,7 @@ export async function buildGraphData(accessToken: string, owner: string, repo: s
       path,
       group,
       val: 1, // Node size, will be adjusted by degree
+      exists: true, // All nodes from buildGraphData are existing files
     });
   }
 

@@ -22,6 +22,7 @@ const GROUP_COLORS: Record<number, string> = {
   3: '#959595', // Sketch - Lighter Gray
   4: '#858585', // Projects - Medium Gray
   5: '#909090', // Database - Gray
+  6: '#5a5a5a', // Phantom - Darker gray (non-existent notes)
 };
 
 export default function GraphView({ width = 1200, height = 800 }: GraphViewProps) {
@@ -124,7 +125,7 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [clickCount, setClickCount] = useState(0);
 
-  const handleNodeClick = (node: any) => {
+  const handleNodeClick = async (node: any) => {
     if (clickTimeoutRef.current) {
       clearTimeout(clickTimeoutRef.current);
       clickTimeoutRef.current = null;
@@ -140,10 +141,44 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
         setClickCount(0);
       }, 300);
     } else if (currentCount === 2) {
-      const slug = node.path.replace(/\.md$/, '').replace(/\//g, '__');
-      console.log('Opening note:', slug);
-      router.push(`/note/${slug}`);
       setClickCount(0);
+
+      // Check if phantom node (non-existent)
+      if (!node.exists) {
+        console.log('Creating phantom note:', node.path);
+
+        // Ask for confirmation
+        if (!confirm(`Create note "${node.name}"?`)) {
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/note/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              path: node.path,
+              content: `# ${node.name}\n\n`,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to create note');
+          }
+
+          // Redirect to newly created note
+          const slug = node.path.replace(/\.md$/, '').replace(/\//g, '__');
+          router.push(`/note/${slug}`);
+        } catch (error) {
+          console.error('Failed to create note:', error);
+          alert('Failed to create note. Check console for details.');
+        }
+      } else {
+        // Existing note - open it
+        const slug = node.path.replace(/\.md$/, '').replace(/\//g, '__');
+        console.log('Opening note:', slug);
+        router.push(`/note/${slug}`);
+      }
     }
   };
 
@@ -208,9 +243,38 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
           )}
 
           {showResults && searchResults.length === 0 && searchQuery.length >= 2 && !searching && (
-            <div className="border-t border-[#3a3a3a] px-4 py-3 text-[#7f7f7f] text-sm">
-              No notes found
-            </div>
+            <button
+              onClick={async () => {
+                const notePath = `${searchQuery}.md`;
+                if (!confirm(`Create new note "${searchQuery}"?`)) return;
+
+                try {
+                  const response = await fetch('/api/note/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      path: notePath,
+                      content: `# ${searchQuery}\n\n`,
+                    }),
+                  });
+
+                  if (!response.ok) throw new Error('Failed to create note');
+
+                  // Redirect to new note
+                  const slug = notePath.replace(/\.md$/, '').replace(/\//g, '__');
+                  router.push(`/note/${slug}`);
+                } catch (error) {
+                  console.error('Failed to create note:', error);
+                  alert('Failed to create note');
+                }
+              }}
+              className="w-full border-t border-[#3a3a3a] px-4 py-3 text-left hover:bg-[#3a3a3a] transition-colors"
+            >
+              <div className="text-[#7f7f7f] text-sm">No notes found</div>
+              <div className="text-[#a0a0a0] text-sm mt-1">
+                → Click to create "<span className="font-medium">{searchQuery}</span>"
+              </div>
+            </button>
           )}
         </div>
 
@@ -314,12 +378,27 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
 
               const nodeColor = GROUP_COLORS[node.group] || GROUP_COLORS[0];
               const isSelected = selectedNode === node.id;
+              const isPhantom = !node.exists;
+
+              // Draw node circle
               ctx.fillStyle = isSelected ? '#a0a0a0' : nodeColor;
               ctx.beginPath();
               const radius = (node.val || 4) * (isSelected ? 1.3 : 1);
               ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
               ctx.fill();
 
+              // Phantom nodes: dashed outline
+              if (isPhantom) {
+                ctx.strokeStyle = '#7f7f7f';
+                ctx.lineWidth = 1.5 / globalScale;
+                ctx.setLineDash([2 / globalScale, 2 / globalScale]);
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, radius + 1, 0, 2 * Math.PI);
+                ctx.stroke();
+                ctx.setLineDash([]); // Reset dash
+              }
+
+              // Selected ring
               if (isSelected) {
                 ctx.strokeStyle = '#d4d4d4';
                 ctx.lineWidth = 2 / globalScale;
@@ -328,10 +407,14 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
                 ctx.stroke();
               }
 
+              // Label
               if (globalScale > 1) {
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = isSelected ? '#d4d4d4' : '#a0a0a0';
+                ctx.fillStyle = isSelected ? '#d4d4d4' : (isPhantom ? '#7f7f7f' : '#a0a0a0');
+                if (isPhantom) {
+                  ctx.font = `italic ${fontSize}px monospace`; // Italic for phantom
+                }
                 ctx.fillText(label, node.x, node.y + radius + fontSize + 2);
               }
             }}
@@ -354,7 +437,8 @@ export default function GraphView({ width = 1200, height = 800 }: GraphViewProps
 
           {/* Instructions */}
           <div className="absolute bottom-4 left-4 bg-[#2a2a2a] border border-[#3a3a3a] rounded p-3 z-10 text-xs text-[#a0a0a0]">
-            <div>Click: Select • Double-click: Open note • Drag: Pan • Scroll: Zoom</div>
+            <div className="mb-1">Click: Select • Double-click: Open • Drag: Pan • Scroll: Zoom</div>
+            <div className="text-[#7f7f7f] italic">Dashed nodes: non-existent notes (double-click to create)</div>
           </div>
         </>
       )}

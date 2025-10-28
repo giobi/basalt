@@ -26,6 +26,7 @@ export interface GraphNode {
   path: string;
   group: number;
   val: number;
+  exists: boolean; // false for phantom nodes (wikilinks to non-existent notes)
 }
 
 export interface GraphLink {
